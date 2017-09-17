@@ -39,7 +39,7 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
     react {
       case Ready() => {
         started += 1;
-        println("controller has seen " + started);
+//        println("controller has seen " + started);
         if (started == cfg.length) {
           for (u <- cfg)
             u ! new Go;
@@ -49,16 +49,16 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
 
       case Finished() => {
         running -= 1;
-        println("currently running: " + running);
+//        println("currently running: " + running);
         if (running == 0) {
           for (u <- cfg) {
             u ! new Stop;
           }
           
-          for (v <- cfg)
-            v.print;
+ //         for (v <- cfg)
+ //           v.print;
 
-          println("Time: " + (System.currentTimeMillis() - begin) / 1000 + " s");
+          println("Time: " + (System.currentTimeMillis() - begin) / 1000f + " s");
         } else {
           act();
         }
@@ -98,15 +98,15 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
       }
 
       case Go() => {
-        println("GO START " + index);
+//        println("GO START " + index);
         controller ! new Resumed;
         dataflow ! new ComputeIn(uses, defs, succ, index, s);
-        println("GO END " + index);
+//        println("GO END " + index);
         act();
       }
 
       case Change(new_in) => {
-        println("CHANGE START " + index);
+//        println("CHANGE START " + index);
         if (!new_in.equals(in)) {
           in = new_in;
           for (v <- pred) {
@@ -114,14 +114,14 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
           }
         }
         controller ! new Finished;
-        println("CHANGE END " + index);
+//        println("CHANGE END " + index);
         act();
       }
 
       case GetIn(sender) => {
-        println("GET IN START " + index);
+//        println("GET IN START " + index);
         reply(new GetInResponse(in));
-        println("GET IN END " + index);
+//        println("GET IN END " + index);
         act();
       }
       case Stop()  => {
@@ -151,10 +151,10 @@ class Dataflow(val vertex: Vertex) extends Actor {
     react {
       case ComputeIn(uses, defs, succ, index, s) => {
         var out = new BitSet(s);
-        println("COMPUTE IN START " + index);
+//        println("COMPUTE IN START " + index);
         for (v <- succ) {
           //if (index == 0 || index == 2 || index == 8)
-            println("SUCCESSOR OF " + index + " IS " + v.index);
+//            println("SUCCESSOR OF " + index + " IS " + v.index);
           v !? new GetIn(this) match {
             case GetInResponse(in) => {
               out.or(in);
@@ -166,7 +166,7 @@ class Dataflow(val vertex: Vertex) extends Actor {
           }
         }
 
-        println("PAST DEADLOCK " + index);
+//        println("PAST DEADLOCK " + index);
         
         var new_in = new BitSet(s);
         new_in.or(out);
@@ -174,7 +174,7 @@ class Dataflow(val vertex: Vertex) extends Actor {
         new_in.or(uses);
 
         vertex ! new Change(new_in);
-        println("COMPUTE IN END " + index);
+//        println("COMPUTE IN END " + index);
         act();
       }
 
