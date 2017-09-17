@@ -8,7 +8,11 @@ case class Stop();
 case class Ready();
 case class Go();
 case class Change(in: BitSet);
-case class Get();
+case class GetIn(sender: Dataflow);
+case class GetInResponse(in: BitSet);
+case class ComputeIn(uses: BitSet, defs: BitSet, out: BitSet, succ: List[Vertex]);
+case class Finished();
+case class Resumed();
 
 class Random(seed: Int) {
         var w = seed + 1;
@@ -25,6 +29,7 @@ class Random(seed: Int) {
 
 class Controller(val cfg: Array[Vertex]) extends Actor {
   var started = 0;
+  var running = 0;
   val begin   = System.currentTimeMillis();
 
   // LAB 2: The controller must figure out when
@@ -34,11 +39,33 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
     react {
       case Ready() => {
         started += 1;
-        //println("controller has seen " + started);
+        println("controller has seen " + started);
         if (started == cfg.length) {
           for (u <- cfg)
             u ! new Go;
         }
+        act();
+      }
+
+      case Finished() => {
+        running -= 1;
+        println("currently running: " + running);
+        if (running == 0) {
+          for (u <- cfg) {
+            u ! new Stop;
+          }
+          
+          for (v <- cfg)
+            v.print;
+
+          println("Time: " + (System.currentTimeMillis() - begin) * 1000 + " s");
+        } else {
+          act();
+        }
+      }
+
+      case Resumed() => {
+        running += 1;
         act();
       }
     }
@@ -52,6 +79,7 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
   val defs               = new BitSet(s);
   var in                 = new BitSet(s);
   var out                = new BitSet(s);
+  val dataflow           = new Dataflow(this);
 
   def connect(that: Vertex)
   {
@@ -61,23 +89,39 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
   }
 
   def act() {
+    println("VERTEX");
     react {
       case Start() => {
+        dataflow.start;
         controller ! new Ready;
         //println("started " + index);
         act();
       }
 
       case Go() => {
-        dataflow ! C
+        controller ! new Resumed;
+        dataflow ! new ComputeIn(uses, defs, out, succ);
         act();
       }
-        case Get(sender) => {
-            sender ! in;
-            act();
-        }
 
-      case Stop()  => { }
+      case Change(new_in) => {
+        if (!new_in.equals(in)) {
+          in = new_in;
+          for (v <- pred) {
+            v ! new Go;
+          }
+        }
+        controller ! new Finished;
+        act();
+      }
+
+      case GetIn(sender) => {
+        sender ! new GetInResponse(in);
+        act();
+      }
+      case Stop()  => {
+        dataflow ! new Stop;
+      }
     }
   }
 
@@ -94,6 +138,34 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
     printSet("def", index, defs);
     printSet("in", index, in);
     println("");
+  }
+}
+
+class Dataflow(val vertex: Vertex) extends Actor {
+  def act() {
+    println("DATAFLOW");
+    react {
+      case ComputeIn(uses, defs, out, succ) => {
+        println("Computing in...");
+        for (v <- succ) {
+          v !? new GetIn(this) match {
+            case GetInResponse(in) => {
+              out.or(in);
+            }
+          }
+        }
+        
+        var new_in = new BitSet();
+        new_in.or(out);
+        new_in.andNot(defs);
+        new_in.or(uses);
+
+        vertex ! new Change(new_in);
+        act();
+      }
+
+      case Stop() => { }
+    }
   }
 }
 
@@ -162,8 +234,8 @@ object Driver {
     for (i <- 0 until nvertex)
       cfg(i) ! new Start;
 
-    if (print != 0)
-      for (i <- 0 until nvertex)
-        cfg(i).print;
+    //if (print != 0)
+    //  for (i <- 0 until nvertex)
+    //    cfg(i).print;
   }
 }
