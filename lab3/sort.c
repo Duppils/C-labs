@@ -37,11 +37,9 @@ static int cmp(const void* ap, const void* bp)
 
 void partition(double* a, size_t n, double* smaller, double* larger, size_t* small_count, size_t* large_count)
 {
-	int r = rand() % n;
-	double pivot = a[r];
-	printf("%zu \n", n);
+	double pivot = n/2;
 	for (int i = 0; i < n; i++) {
-		if (a[i] < pivot) {
+		if (i < pivot) {
 			smaller[*small_count] = a[i];
 			*small_count = *small_count + 1;
 		} else {
@@ -55,6 +53,35 @@ void* thread_start(void* data) {
 	arg_struct_t* args = (arg_struct_t*) data;
 	qsort(args->base, args->n, args->s, cmp);
 	return data;
+}
+
+void sortstuff(double* result, double* l1, double* l2, int n){
+	int pos = 0;
+	int x = 0;
+	int y = 0;
+
+	while (x < n && y < n) {
+		if (l1[x] < l2[y]) {
+			result[pos] = l1[x];
+			x++;
+		} else {
+			result[pos] = l2[y];
+			y++;
+		}
+		pos++;
+	}
+
+	if (x < y) {
+		for (x; x < n; x++) {
+			result[pos] = l1[x];
+			pos++;
+		} 
+	} else {
+		for (y; y < n; y++) {
+			result[pos] = l2[y];
+			pos++;
+		} 
+	}
 }
 
 void par_sort(
@@ -113,18 +140,16 @@ void par_sort(
 	printf("joined thread two with status %d\n", pthread_join(large_l_t, NULL));
 	printf("joined thread three with status %d\n", pthread_join(small_r_t, NULL));
 	printf("joined thread four with status %d\n", pthread_join(large_r_t, NULL));
+	double* temp_l = malloc((n/2) * s);
+	double* temp_r = malloc((n/2) * s);
+	sortstuff(temp_l, small_l, large_l, n/4);
+	sortstuff(temp_r, small_r, large_r, n/4);
+	sortstuff((double*) base, temp_l, temp_r, n/2);	
 
-	int offset = 0;
+	printf("t1 work: %zu\nt2 work %zu\nt3 work %zu\nt4 work %zu\n", *small_count_l, *large_count_l, *small_count_r, *large_count_r);
 
-	memcpy(base + offset, small_l, *small_count_l * s);
-	offset += *small_count_l * s; 
-	memcpy(base + offset, large_l, *large_count_l * s);
-	offset += *large_count_l * s;
-	memcpy(base + offset, small_r, *small_count_r * s);
-	offset += *small_count_r * s;
-	memcpy(base + offset, large_r, *large_count_r * s); 
-
-
+	free(temp_l);
+	free(temp_r);
 	free(small_count);
 	free(large_count);
 	free(small_count_l);

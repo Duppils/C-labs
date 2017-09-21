@@ -124,6 +124,8 @@ void par_sort(
 	offset += *small_count_r * s;
 	memcpy(base + offset, large_r, *large_count_r * s); 
 
+	printf("t1 work: %zu\nt2 work %zu\nt3 work %zu\nt4 work %zu\n", *small_count_l, *large_count_l, *small_count_r, *large_count_r);
+
 
 	free(small_count);
 	free(large_count);
