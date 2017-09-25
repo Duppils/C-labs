@@ -8,7 +8,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <string.h>
-#define PARALLEL
 
 typedef struct {
 	void*		base;	// Array to sort.
@@ -122,24 +121,24 @@ void par_sort(
 	
 	pthread_t small_l_t;
 	arg_struct_t args_small_l = {small_l, *small_count_l, s, cmp};
-	printf("thread one statuso: %d\n", pthread_create(&small_l_t, NULL, thread_start, &args_small_l));
+	pthread_create(&small_l_t, NULL, thread_start, &args_small_l);
 
 	pthread_t large_l_t;
 	arg_struct_t args_large_l = {large_l, *large_count_l, s, cmp};
-	printf("thread two statuso: %d\n",pthread_create(&large_l_t, NULL, thread_start, &args_large_l));
+	pthread_create(&large_l_t, NULL, thread_start, &args_large_l);
 
 	pthread_t small_r_t;
 	arg_struct_t args_small_r = {small_r, *small_count_r, s, cmp};
-	printf("thread three statuso: %d\n",pthread_create(&small_r_t, NULL, thread_start, &args_small_r));
+	pthread_create(&small_r_t, NULL, thread_start, &args_small_r);
 	
 	pthread_t large_r_t;
 	arg_struct_t args_large_r = {large_r, *large_count_r, s, cmp};
-	printf("thread four statuso: %d\n",pthread_create(&large_r_t, NULL, thread_start, &args_large_r));
+	pthread_create(&large_r_t, NULL, thread_start, &args_large_r);
 	
-	printf("joined thread one with status %d\n", pthread_join(small_l_t, NULL));
-	printf("joined thread two with status %d\n", pthread_join(large_l_t, NULL));
-	printf("joined thread three with status %d\n", pthread_join(small_r_t, NULL));
-	printf("joined thread four with status %d\n", pthread_join(large_r_t, NULL));
+	pthread_join(small_l_t, NULL);
+	pthread_join(large_l_t, NULL);
+	pthread_join(small_r_t, NULL);
+	pthread_join(large_r_t, NULL);
 	double* temp_l = malloc((n/2) * s);
 	double* temp_r = malloc((n/2) * s);
 	sortstuff(temp_l, small_l, large_l, n/4);
@@ -169,7 +168,7 @@ void par_sort(
 
 int main(int ac, char** av)
 {
-	int		n = 2000000;
+	int		n = 10000;
 	int		i;
 	double*		a;
 	double		start, end;
@@ -192,7 +191,7 @@ int main(int ac, char** av)
 
 	end = sec();
 
-	printf("%1.2f s\n", end - start);
+	printf("%1.4f s\n", end - start);
 
 	for (i = 0; i < n-1; i++) {
 		assert(a[i] <= a[i+1]);
