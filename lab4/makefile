@@ -21,7 +21,8 @@ P=0
 all: $(OBJS)	
 	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $(OUT)
 	#valgrind --tool=helgrind ./$(OUT) $(S) $(V) $(U) $(A) $(T) $(P) $(L)
-	./$(OUT) $(S) $(V) $(U) $(A) $(T) $(P)
+	#./$(OUT) $(S) $(V) $(U) $(A) $(T) $(P)
+	valgrind --track-origins=yes ./$(OUT) $(S) $(V) $(U) $(A) $(T) $(P) $(L)
 
 clean:
 	rm -f $(OUT) $(OBJS) cfg.dot
